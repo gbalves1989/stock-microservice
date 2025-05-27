@@ -1,0 +1,117 @@
+postgres-categories:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ${POSTGRES_CATEGORY_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_CATEGORY_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_CATEGORY_DB}
+    ports:
+      - "${POSTGRES_CATEGORY_PORT}:5432"
+    expose:
+      - "${POSTGRES_CATEGORY_PORT}"
+    volumes:
+      - ./docker/pg_categories_data:/var/lib/postgresql/data
+    networks:
+      - stock_microservice_network
+
+postgres-products:
+    image: postgres:13
+    environment:
+        POSTGRES_USER: ${POSTGRES_PRODUCT_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PRODUCT_PASSWORD}
+        POSTGRES_DB: ${POSTGRES_PRODUCT_DB}
+    ports:
+        - "${POSTGRES_PRODUCT_PORT}:5432"
+    expose:
+        - "${POSTGRES_PRODUCT_PORT}"
+    volumes:
+        - ./docker/pg_products_data:/var/lib/postgresql/data
+    networks:
+        - stock_microservice_network
+
+kong:
+    image: kong:latest
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:${KONG_ADMIN_PORT}
+    volumes:
+      - ./.docker/kong/kong.yml:/usr/local/kong/kong.yml
+    ports:
+      - "${KONG_PROXY_PORT}:8000"
+      - "${KONG_ADMIN_PORT}:8001"
+    expose:
+      - "${KONG_PROXY_PORT}"
+      - "${KONG_ADMIN_PORT}"
+    networks:
+      - stock_microservice_network
+  
+  user-microservice:
+    build: ./user-microservice
+    environment:
+      MONGO_URI: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/"
+    ports:
+      - "${API_USER_PORT}:8000"
+    expose:
+      - "${API_USER_PORT}"
+    depends_on:
+      - mongo
+    networks:
+      - stock_microservice_network
+
+  category-microservice:
+    build: ./category-microservice
+    ports:
+      - "${POSTGRES_CATEGORY_PORT}:8000"
+    expose:
+      - "${POSTGRES_CATEGORY_PORT}"
+    depends_on:
+      - postgres-categories
+    networks:
+      - stock_microservice_network
+
+  product-microservice:
+    build: ./product-microservice
+    ports:
+      - "${POSTGRES_PRODUCT_PORT}:8000"
+    expose:
+      - "${POSTGRES_PRODUCT_PORT}"
+    depends_on:
+      - postgres-products
+    networks:
+      - stock_microservice_network
+
+  redis:
+    image: redis:7
+    env_file:
+      - .env
+    ports:
+      - "${REDIS_ADMIN_PORT}:6379"
+    expose:
+      - "${REDIS_ADMIN_PORT}"
+    volumes:
+      - ./.docker/redis-data:/data/redis
+    networks:
+      - stock_microservice_network
+
+  mongo:
+    image: mongo:5
+    env_file:
+      - .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    ports:
+      - "${MONGO_PORT}:27017"
+    expose:
+      - "${MONGO_PORT}"
+    volumes:
+      - ./.docker/mongo_data:/data/db
+    networks:
+      - stock_microservice_network
+
+volumes:
+  mongo_data:

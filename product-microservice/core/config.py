@@ -1,0 +1,15 @@
+import os
+from pydantic.v1 import BaseConfig
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class Settings(BaseConfig):
+    API_VERSION: str = os.getenv("API_PRODUCT_VERSION")
+    API_URL = os.getenv("API_PRODUCT_URL")
+    API_PORT = int(os.getenv("API_PRODUCT_PORT"))
+    
+    class Config:
+        case_sensitive = True
+
+settings: Settings = Settings() 
