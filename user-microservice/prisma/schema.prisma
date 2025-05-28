@@ -1,5 +1,6 @@
 generator client {
-    provider = "prisma-client-py"
+    provider             = "prisma-client-py"
+    recursive_type_depth = 5
 }
 
 datasource db {
@@ -14,4 +15,6 @@ model User {
     password        String
     kong_jwt_key    String?
     kong_jwt_secret String?
+
+    @@map("users")
 }
